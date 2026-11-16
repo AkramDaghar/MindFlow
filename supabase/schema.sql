@@ -7,9 +7,16 @@ create table if not exists public.mind_maps (
   title       text not null default 'Untitled map',
   nodes       jsonb not null default '[]'::jsonb,
   edges       jsonb not null default '[]'::jsonb,
+  snap_grid   boolean not null default true,
+  cover_image text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+
+-- Safe migration for existing databases
+alter table public.mind_maps
+  add column if not exists snap_grid boolean not null default true,
+  add column if not exists cover_image text;
 
 create index if not exists mind_maps_user_id_updated_at_idx
   on public.mind_maps (user_id, updated_at desc);

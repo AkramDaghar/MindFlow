@@ -23,7 +23,8 @@ body {
 }
 
 /* ---------- React Flow tweaks ---------- */
-.react-flow__attribution {
+.react-flow__attribution,
+.react-flow__nodesselection {
   display: none;
 }
 
@@ -59,17 +60,28 @@ body {
 
 .react-flow__handle.mind-handle {
   opacity: 0;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   min-width: 0;
   min-height: 0;
-  border: none;
-  background: #a3a3a3;
-  transition: opacity 120ms;
+  border: 1.5px solid #ffffff;
+  background: #737373;
+  transition: opacity 120ms, transform 120ms, background-color 120ms;
 }
 
-.react-flow__node:hover .react-flow__handle.mind-handle {
+.dark .react-flow__handle.mind-handle {
+  border-color: #0a0a0a;
+  background: #a3a3a3;
+}
+
+.react-flow__node:hover .react-flow__handle.mind-handle,
+.react-flow__node.selected .react-flow__handle.mind-handle {
   opacity: 1;
+}
+
+.react-flow__handle.mind-handle:hover {
+  background: #3b82f6;
+  transform: scale(1.25);
 }
 
 /* Landing page subtle animations */

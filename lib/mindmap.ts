@@ -1,12 +1,29 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { MindNodeData, StoredEdge, StoredNode } from "@/lib/types";
+import {
+  ALLOWED_NODE_FILE_EXTENSIONS,
+  NODE_COLOR_MAP,
+  type ChecklistItem,
+  type MindNodeData,
+  type NodeColor,
+  type NodeFile,
+  type StoredEdge,
+  type StoredNode,
+} from "@/lib/types";
 
 export type MindNode = Node<MindNodeData, "mind">;
 
+export const GRID_SIZE = 20;
 export const NODE_GAP_X = 80;
-export const NODE_GAP_Y = 22;
+export const NODE_GAP_Y = 20;
 export const EST_WIDTH = 150;
 export const EST_HEIGHT = 40;
+
+export function snapPosition(pos: { x: number; y: number }) {
+  return {
+    x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
+    y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE,
+  };
+}
 
 export function newId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -85,7 +102,12 @@ export function toStoredNodes(nodes: MindNode[]): StoredNode[] {
     id: n.id,
     type: "mind",
     position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
-    data: { label: n.data.label ?? "" },
+    data: {
+      label: n.data.label ?? "",
+      ...(n.data.color ? { color: n.data.color } : {}),
+      ...(n.data.files?.length ? { files: n.data.files } : {}),
+      ...(n.data.checklist?.length ? { checklist: n.data.checklist } : {}),
+    },
   }));
 }
 
@@ -93,19 +115,59 @@ export function toStoredEdges(edges: Edge[]): StoredEdge[] {
   return edges.map((e) => ({ id: e.id, source: e.source, target: e.target }));
 }
 
+function parseStoredFiles(raw: unknown): NodeFile[] {
+  if (!Array.isArray(raw)) return [];
+  const allowed = new Set<string>(ALLOWED_NODE_FILE_EXTENSIONS);
+  return raw.filter(
+    (f): f is NodeFile =>
+      Boolean(f) &&
+      typeof f.id === "string" &&
+      typeof f.name === "string" &&
+      typeof f.ext === "string" &&
+      allowed.has(f.ext) &&
+      typeof f.dataUrl === "string" &&
+      f.dataUrl.startsWith("data:")
+  );
+}
+
+function parseStoredChecklist(raw: unknown): ChecklistItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((c) => c && typeof c.id === "string" && typeof c.text === "string")
+    .map((c) => ({
+      id: c.id as string,
+      text: c.text as string,
+      checked: Boolean(c.checked),
+    }));
+}
+
 export function fromStoredNodes(raw: unknown): MindNode[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((n) => n && typeof n.id === "string")
-    .map((n) => ({
-      id: n.id,
-      type: "mind" as const,
-      position: {
-        x: Number(n.position?.x) || 0,
-        y: Number(n.position?.y) || 0,
-      },
-      data: { label: typeof n.data?.label === "string" ? n.data.label : "" },
-    }));
+    .map((n) => {
+      const rawColor = n.data?.color;
+      const color =
+        typeof rawColor === "string" && rawColor in NODE_COLOR_MAP
+          ? (rawColor as NodeColor)
+          : undefined;
+      const files = parseStoredFiles(n.data?.files);
+      const checklist = parseStoredChecklist(n.data?.checklist);
+      return {
+        id: n.id,
+        type: "mind" as const,
+        position: {
+          x: Number(n.position?.x) || 0,
+          y: Number(n.position?.y) || 0,
+        },
+        data: {
+          label: typeof n.data?.label === "string" ? n.data.label : "",
+          ...(color ? { color } : {}),
+          ...(files.length ? { files } : {}),
+          ...(checklist.length ? { checklist } : {}),
+        },
+      };
+    });
 }
 
 export function fromStoredEdges(raw: unknown): Edge[] {
@@ -130,6 +192,9 @@ export function toMarkdown(title: string, nodes: MindNode[], edges: Edge[], root
     if (visited.has(n.id)) return;
     visited.add(n.id);
     lines.push(`${"  ".repeat(depth)}- ${label(n)}`);
+    for (const item of n.data.checklist ?? []) {
+      lines.push(`${"  ".repeat(depth + 1)}- [${item.checked ? "x" : " "}] ${item.text || "Untitled"}`);
+    }
     for (const c of getChildren(nodes, edges, n.id)) walk(c, depth + 1);
   };
 

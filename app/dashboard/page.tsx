@@ -12,17 +12,31 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data, error } = await supabase
+  let migrationNeeded = false;
+  let { data, error } = await supabase
     .from("mind_maps")
-    .select("id, title, nodes, updated_at")
+    .select("id, title, nodes, updated_at, snap_grid, cover_image")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
+
+  if (error && (error.code === "42703" || error.message.includes("does not exist"))) {
+    migrationNeeded = true;
+    const fallback = await supabase
+      .from("mind_maps")
+      .select("id, title, nodes, updated_at")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+    data = fallback.data?.map((m) => ({ ...m, snap_grid: true, cover_image: null })) ?? null;
+    error = fallback.error;
+  }
 
   const maps: MapSummary[] = (data ?? []).map((m) => ({
     id: m.id as string,
     title: m.title as string,
     updated_at: m.updated_at as string,
     nodeCount: Array.isArray(m.nodes) ? m.nodes.length : 0,
+    snapGrid: typeof m.snap_grid === "boolean" ? m.snap_grid : true,
+    coverImage: typeof m.cover_image === "string" ? m.cover_image : null,
   }));
 
   return (
@@ -39,6 +53,17 @@ export default async function DashboardPage() {
             </p>
           </div>
         </div>
+        {migrationNeeded && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+            <p className="font-medium">Database update needed for Picture &amp; Snap Grid settings</p>
+            <p className="mt-1 text-xs opacity-90">
+              Run this in your Supabase Dashboard → SQL Editor so map pictures and snap-grid preferences save:
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded-lg bg-black/5 px-3 py-2 font-mono text-xs dark:bg-black/30">
+              {`alter table public.mind_maps\n  add column if not exists snap_grid boolean not null default true,\n  add column if not exists cover_image text;`}
+            </pre>
+          </div>
+        )}
         {error && (
           <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
             Could not load your maps: {error.message}
