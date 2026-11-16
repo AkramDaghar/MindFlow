@@ -5,19 +5,22 @@ import { Check, Loader2, Move, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-reac
 
 type Props = {
   src: string;
+  variant?: "cover" | "avatar";
   onCancel: () => void;
   onConfirm: (croppedDataUrl: string) => Promise<void> | void;
 };
 
-const OUT_W = 800;
-const OUT_H = 400; // 2:1 matches the card figure proportions
-
-export function ImageCropper({ src, onCancel, onConfirm }: Props) {
+export function ImageCropper({ src, variant = "cover", onCancel, onConfirm }: Props) {
+  const isAvatar = variant === "avatar";
+  const outW = isAvatar ? 320 : 800;
+  const outH = isAvatar ? 320 : 400;
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
-  const [frameSize, setFrameSize] = useState<{ w: number; h: number }>({ w: 380, h: 190 });
+  const [frameSize, setFrameSize] = useState<{ w: number; h: number }>(
+    isAvatar ? { w: 260, h: 260 } : { w: 380, h: 190 }
+  );
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -119,12 +122,12 @@ export function ImageCropper({ src, onCancel, onConfirm }: Props) {
     setError(null);
     try {
       const canvas = document.createElement("canvas");
-      canvas.width = OUT_W;
-      canvas.height = OUT_H;
+      canvas.width = outW;
+      canvas.height = outH;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas is unavailable.");
 
-      const k = OUT_W / frameSize.w;
+      const k = outW / frameSize.w;
       const left = frameSize.w / 2 + clamped.x - rw / 2;
       const top = frameSize.h / 2 + clamped.y - rh / 2;
       ctx.drawImage(img, left * k, top * k, rw * k, rh * k);
@@ -171,7 +174,9 @@ export function ImageCropper({ src, onCancel, onConfirm }: Props) {
           e.preventDefault();
           handleZoomChange(zoom + (e.deltaY < 0 ? 0.12 : -0.12));
         }}
-        className={`relative aspect-[2/1] w-full select-none overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 touch-none dark:border-neutral-700 dark:bg-neutral-950 ${
+        className={`relative w-full select-none overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 touch-none dark:border-neutral-700 dark:bg-neutral-950 ${
+          isAvatar ? "mx-auto aspect-square max-w-[260px]" : "aspect-[2/1]"
+        } ${
           dragging ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
@@ -192,18 +197,22 @@ export function ImageCropper({ src, onCancel, onConfirm }: Props) {
           />
         )}
 
-        {/* Rule-of-thirds guide */}
-        <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-35">
-          <div className="border-b border-r border-white/60" />
-          <div className="border-b border-r border-white/60" />
-          <div className="border-b border-white/60" />
-          <div className="border-b border-r border-white/60" />
-          <div className="border-b border-r border-white/60" />
-          <div className="border-b border-white/60" />
-          <div className="border-r border-white/60" />
-          <div className="border-r border-white/60" />
-          <div />
-        </div>
+        {isAvatar ? (
+          <div className="pointer-events-none absolute inset-0 rounded-full ring-[999px] ring-black/40 border border-white/70" />
+        ) : (
+          /* Rule-of-thirds guide */
+          <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-35">
+            <div className="border-b border-r border-white/60" />
+            <div className="border-b border-r border-white/60" />
+            <div className="border-b border-white/60" />
+            <div className="border-b border-r border-white/60" />
+            <div className="border-b border-r border-white/60" />
+            <div className="border-b border-white/60" />
+            <div className="border-r border-white/60" />
+            <div className="border-r border-white/60" />
+            <div />
+          </div>
+        )}
 
         <div className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] text-white backdrop-blur-xs">
           <Move size={10} /> Drag

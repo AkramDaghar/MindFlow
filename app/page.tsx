@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Cloud, Infinity as InfinityIcon, Keyboard } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { MindMapPreview } from "@/components/landing/mind-map-preview";
 
 const features = [
@@ -30,7 +29,6 @@ export default function LandingPage() {
         <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
           <Logo />
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <Link
               href="/login"
               className="rounded-md px-3 py-1.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white"

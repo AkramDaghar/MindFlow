@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import type { AuthState } from "@/app/auth/actions";
 
 type Props = {
@@ -24,7 +23,6 @@ export function AuthForm({ mode, action, initialError }: Props) {
     <div className="flex min-h-screen flex-col">
       <header className="flex h-14 items-center justify-between px-6">
         <Logo />
-        <ThemeToggle />
       </header>
 
       <main className="flex flex-1 items-center justify-center px-6 pb-20">

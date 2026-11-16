@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { fetchUserProfile } from "@/lib/account";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { MapGrid, type MapSummary } from "@/components/dashboard/map-grid";
 
@@ -11,6 +12,8 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const profile = await fetchUserProfile(supabase, user);
 
   let migrationNeeded = false;
   let { data, error } = await supabase
@@ -41,7 +44,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50/60 dark:bg-neutral-950">
-      <DashboardHeader email={user.email ?? ""} />
+      <DashboardHeader
+        displayName={profile.displayName}
+        avatarUrl={profile.avatarUrl}
+      />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8 flex items-end justify-between">
           <div>

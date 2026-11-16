@@ -20,7 +20,6 @@ import {
   Settings,
   Undo2,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
@@ -283,7 +282,6 @@ export function Toolbar({
             </div>
           )}
         </div>
-        <ThemeToggle />
         <div className="relative" ref={shortcutsRef}>
           <button
             className={iconBtn}
