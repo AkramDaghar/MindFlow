@@ -95,11 +95,35 @@ function MindNodeView({ id, data, selected }: NodeProps<MindNode>) {
   useEffect(() => {
     if (!isEditing) return;
     setEditingCheckId(null);
-    const el = ref.current;
-    if (!el) return;
-    el.focus();
-    const end = el.value.length;
-    el.setSelectionRange(end, end);
+    let cancelled = false;
+    let raf = 0;
+    let tries = 0;
+
+    const tryFocus = () => {
+      if (cancelled) return;
+      const el = ref.current;
+      if (!el) return;
+      // React Flow keeps newly mounted nodes `visibility: hidden` until ResizeObserver
+      // measures them; browsers ignore .focus() while an element is hidden.
+      const visible = window.getComputedStyle(el).visibility !== "hidden";
+      if (visible) {
+        el.focus({ preventScroll: true });
+        if (document.activeElement === el) {
+          const end = el.value.length;
+          el.setSelectionRange(end, end);
+          return;
+        }
+      }
+      if (tries++ < 30) {
+        raf = requestAnimationFrame(tryFocus);
+      }
+    };
+
+    tryFocus();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
   }, [isEditing]);
 
   useEffect(() => {
@@ -296,6 +320,7 @@ function MindNodeView({ id, data, selected }: NodeProps<MindNode>) {
           </div>
           <textarea
             ref={ref}
+            autoFocus
             value={label}
             rows={1}
             placeholder="Type something…"

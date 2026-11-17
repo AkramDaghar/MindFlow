@@ -488,6 +488,16 @@ function EditorInner({
       }
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       if (editingRef.current) return;
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setNodes((ns) => ns.map((n) => (n.selected ? n : { ...n, selected: true })));
+        setEdges((es) =>
+          es.some((ed) => ed.selected)
+            ? es.map((ed) => (ed.selected ? { ...ed, selected: false } : ed))
+            : es
+        );
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       const ns = nodesRef.current;
@@ -564,6 +574,7 @@ function EditorInner({
   // ---------------------------------------------------------------- mouse
   const onNodeClick: NodeMouseHandler<MindNode> = useCallback(
     (e, node) => {
+      if (editingRef.current === node.id && !e.shiftKey) return;
       setEditingId(null);
       setEdges((es) => (es.some((ed) => ed.selected) ? es.map((ed) => (ed.selected ? { ...ed, selected: false } : ed)) : es));
       if (!e.shiftKey) {
@@ -655,7 +666,10 @@ function EditorInner({
         y: dropPos.y - EST_HEIGHT / 2,
       };
       const position = snapGrid ? snapPosition(raw) : raw;
-      insertNode(connectionState.fromNode.id, position);
+      const sourceId = connectionState.fromNode.id;
+      // Defer until after React Flow finishes pointerup focus cleanup so the
+      // new node's textarea keeps the caret immediately.
+      requestAnimationFrame(() => insertNode(sourceId, position));
     },
     [rf, snapGrid, insertNode]
   );
@@ -895,6 +909,8 @@ function EditorInner({
             maxZoom={2.5}
             deleteKeyCode={null}
             disableKeyboardA11y
+            nodesFocusable={false}
+            edgesFocusable={false}
             zoomOnDoubleClick={false}
             proOptions={{ hideAttribution: true }}
           >
